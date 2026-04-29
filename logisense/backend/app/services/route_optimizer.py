@@ -87,7 +87,7 @@ def optimize_routes(
                     dur_matrix_cities[c1][c2] = 999999.0
 
     # b. Set up OR-Tools RoutingModel
-    # Nodes: 0 (Depot - Mumbai), 1..2N (Pickups & Deliveries), 2N+1..2N+V (Vehicle Starts)
+    # Nodes: 0 (Depot - Mumbai), 1..2N (Pickups & Deliveries), 2N+1..2N+2V (Vehicle Starts & Ends)
     nodes = ["Mumbai"]
     for task in tasks:
         nodes.append(task.origin)      # Pickup
@@ -96,9 +96,13 @@ def optimize_routes(
     starts = []
     ends = []
     for v in vehicles:
+        # Start node for vehicle
         nodes.append(v.current_location)
         starts.append(len(nodes) - 1)
-        ends.append(0)  # End at Depot (Mumbai)
+        
+        # End node for vehicle (unique index, maps to Mumbai)
+        nodes.append("Mumbai")
+        ends.append(len(nodes) - 1)
 
     manager = pywrapcp.RoutingIndexManager(len(nodes), len(vehicles), starts, ends)
     routing = pywrapcp.RoutingModel(manager)
@@ -109,7 +113,7 @@ def optimize_routes(
         to_node = manager.IndexToNode(to_index)
         c1 = nodes[from_node]
         c2 = nodes[to_node]
-        return int(dist_matrix_cities[c1][c2] * 100)
+        return int(dist_matrix_cities[c1][c2])
 
     transit_callback_index = routing.RegisterTransitCallback(distance_callback)
     routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
